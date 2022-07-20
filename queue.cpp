@@ -1,4 +1,5 @@
 #include <iostream>
+#include <string>
 
 using namespace std;
 
@@ -54,7 +55,22 @@ void dequeue()  // dequeue element at front
     f = (f + 1) % max_size;
     n--;
 }
+
+string full_queue() {
+    int i = f;
+    string s = "";
+    while (i != r) {
+        s += to_string(Q[i]) + ",";
+        i = (i + 1) % max_size;
+    }
+    return s;
 };
+
+};
+
+
+
+
 
 int main() {
     cout << "teste" << endl;
@@ -62,15 +78,15 @@ int main() {
      rnd_nums[2] = 2;//new int[10];
     Queue q = Queue();
 
-    q.dequeue();
+    //q.dequeue();
     cout << q.size() << endl;
     q.enqueue(13);
-    
-    cout << q.front() << endl;
-    
     q.enqueue(25);
     q.enqueue(26);
     q.enqueue(27);
+    cout << q.full_queue() << endl;
+    
+    
     q.enqueue(28);
     q.enqueue(29);
     q.dequeue();
@@ -89,5 +105,6 @@ int main() {
     q.dequeue();
     q.dequeue();
     cout << q.front() << endl;
-// */
+
 }
+// */
