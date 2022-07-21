@@ -2,9 +2,10 @@
 #include <fstream>
 #include <omp.h>
 #include <signal.h>
-#include<sys/wait.h>
+#include <sys/wait.h>
 #include <unistd.h>
 #include <string>
+#include <map>
 
 using namespace std;
 
@@ -12,6 +13,7 @@ using namespace std;
 
 const int queue_size = 15;
 
+bool gambiarra_no_jutsu;
 class Queue { // an interface for a queue
 
 private:
@@ -43,7 +45,7 @@ int front() { // return front item
     return Q[f];
 }
 void enqueue (int x) { // add item to queue
-    if (n == max_size) {
+    if (n = max_size) {
         length_error("Queue maxsize surpassed");
         return;
     }
@@ -77,13 +79,13 @@ string full_queue() {
 
 void signal_handler(int sig) {
     if (sig == SIGUSR1){
-        cout << "Busque conhecimento\n";
+        gambiarra_no_jutsu = true;
     }
     if (sig == SIGPROF){
-        cout << "Qual a pergunta?\n";
+        gambiarra_no_jutsu = false;
     }
     if (sig == SIGTERM){
-        cout << "42\n";
+        cout << "Caboooooou\n";
 
         exit(0);
 
@@ -97,71 +99,109 @@ private:
 public:
     CADME() {
         acess_queue = Queue();
-    }
-    void request_access(int process_id) {
-        bool is_empty; 
-        #pragma omp critical
-            is_empty = acess_queue.empty();
 
-        if (is_empty)  
+    }
+    int request_access(int process_id) {
+
+        if (acess_queue.empty())  {
+            cout << "Granted to Process " << process_id << " has access\n";
+            return process_id;
+        }
             // grant acess to process_id
-            return
-        #pragma omp critical    
+            
             acess_queue.enqueue(process_id);
+            
     }
-    void release_access(int process_id) {
-        int process_to_release;
-        #pragma omp critical
-            process_to_release = acess_queue.front();
+    int release_access(int process_id) {
 
-        if (process_id != process_to_release) {
+        if (process_id != acess_queue.front()) {
             // process_id did not request access
-            return;
+            return null;
         }
-
-        #pragma omp critical
+    
             acess_queue.dequeue();
+            
+            
         
-        bool is_empty; 
-        #pragma omp critical
-            is_empty = acess_queue.empty();
-        
-        if (!is_empty) {
-            queue_head;
-            #pragma omp critical
-                queue_head = acess_queue.front();
-            int process_with_acess = queue_head;
+        if (!acess_queue.empty()) {
+                
+
+            int process_with_acess = acess_queue.front();;
             // grant acess to process_with_acess
+            cout << "Granted to Process " << process_with_acess << " has access\n";
+            return process_with_acess;
         }
+    }
+
+    int get_acess() {
+
+        return acess_queue.front();
+        
     }
     
     
     string show_queue() {
-        #pragma omp critical
-            s = acess_queue.full_queue();
+
+        string s = acess_queue.full_queue();
+        
         return s;
     }
 };
 
+class Process_Counter {
+    private:
+        map <int, int> dic_process;
+
+    public:
+        Process_Counter() {
+            dic_process = map <int, int>();
+            
+        }
+        void inc_process_count(int process_id) {
+            if (dic_process[process_id] == 0) {
+                dic_process[process_id] = 1;
+            }
+            else {
+                dic_process[process_id]++;
+            }
+        }
+        int get_process_count(int process_id) {
+            return dic_process[process_id];
+        }
+
+};
  
 int main() {
+    
+    Process_Counter process_counter;
+
+    omp_lock_t coordinator_lock;
 
     ofstream MyFile("log.txt");
 
     int mypid = getpid();
     cout << "O meu codigo e " << mypid << endl;
 
-    Queue fila = Queue();
+    omp_init_lock(&coordinator_lock);
+
+    CADME coordenator = CADME();
+
+    string log_message;
+    string terminal_message;
     
     // Coordenador de threads
     #pragma omp parallel num_threads(NT)
     {
         int thread_num = omp_get_thread_num();
+        int i = 0;
+        int j = 0;
     
         switch (thread_num) {
         case 0:
             while (true)
             {
+            sleep(2000);
+
             if (signal(SIGUSR1, signal_handler) == SIG_ERR) {
                 cout << "SIGUSR1 não foi capturado \n";
             } 
@@ -171,33 +211,50 @@ int main() {
             if (signal(SIGTERM, signal_handler) == SIG_ERR) {
                 cout << "SIGTERM não foi capturado \n";
             }
-            cout << "UNO " << endl;
 
-            sleep(20);
-            cout << "DUE " << endl;
-            wait(NULL);
-            cout << "isso nunca e impresso na tela";
+            if(gambiarra_no_jutsu) {
+                omp_set_lock(&coordinator_lock);
+                cout << "La fila " <<coordenator.show_queue()<< endl;
+                omp_unset_lock(&coordinator_lock);  
+            }
+            else { // falta printar qunatas vezes cada processo foi atendido
+               cout << "Gambiarra não ativada" <<endl; 
+            }
+            
+            //wait(NULL);
+            
+                 
             
             } 
-            /*    
-            for (int i = 0; i < 10; i++) {
-                cout << "Jo soe el respondedor del terminal" << endl;
-                            break;
-                }    
-            //*/
+         
         case 1:
+            sleep(3);
             while (true) {
-                cout << "Jo soe el executor de la distribuicion multipla destribuida " << endl;
-                fila.enqueue(omp_get_num_threads());
+                
+                omp_set_lock(&coordinator_lock);
+                    cout << "Jo soe el executor de la distribuicion multipla destribuida, release acess "<< coordenator.get_acess() << endl;
+                    coordenator.release_access(coordenator.get_acess());
+                omp_unset_lock(&coordinator_lock);    
+
+                i++;
                 sleep(4);
                 }  
             
         case 2: 
             cout << omp_get_num_threads() << "Cabron!" << endl;
             while (true) {
-                cout << "jo soe el respetor de conexiones " << fila.front() << endl;
 
-                MyFile << "dias de luta " << endl;
+                cout << "jo soe el respetor de conexiones, release " << 1234213 + j << endl;
+                omp_set_lock(&coordinator_lock); 
+                    coordenator.request_access(1234213 + j);
+
+                omp_unset_lock(&coordinator_lock);
+                
+                log_message = coordenator.show_queue();
+
+                j++;
+
+                MyFile << log_message << endl;
                 sleep(3);
                 }  
             

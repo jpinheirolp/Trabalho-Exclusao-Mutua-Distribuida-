@@ -1,0 +1,6 @@
+*.png
+log.txt
+queue
+queue.cpp
+.vscode/
+a.out
